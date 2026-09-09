@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zenith &amp; Sky — Vending Location Intelligence</title>
+<meta name="description" content="Rank, map and shortlist vending machine placement sites around Colorado Springs by distance, audience size and industry fit.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a5fb4'/%3E%3Ctext x='16' y='22' font-family='system-ui,sans-serif' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3EZS%3C/text%3E%3C/svg%3E">
+<style>/*__LEAFLET_CSS__*/</style>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">ZS</div>
+      <div class="brand-text">
+        <div class="brand-title">Vending Location Intelligence</div>
+        <div class="brand-sub" id="metaLine"></div>
+      </div>
+    </div>
+    <button class="home-chip" id="btnHome" title="Change your home base">
+      <span class="home-star">★</span>
+      <span>Home base · <b id="homeLabel"></b></span>
+      <span class="home-edit">Change</span>
+    </button>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-actions">
+      <button class="btn" id="btnImport">↑ Import Excel</button>
+      <button class="btn" id="btnExport">↓ Export CSV</button>
+      <button class="btn ghost icon" id="btnExportJSON" title="Export the enriched dataset as JSON">{ }</button>
+      <a class="btn ghost" href="GUIDE.html" target="_blank" rel="noopener" title="Open the operator's manual">? Guide</a>
+      <button class="btn ghost icon" id="btnTheme" title="Toggle light / dark">☾</button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <aside class="sidebar">
+      <div class="panel">
+        <div class="search-wrap">
+          <span class="search-ico">⌕</span>
+          <input id="search" type="search" placeholder="Search company, street, industry…" autocomplete="off">
+          <button class="search-clear" id="searchClear" style="display:none" title="Clear">✕</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Sort by <button class="btn ghost" id="addSort">+ Add level</button></div>
+        <div id="sortRules"></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.45">
+          Applied in order: <span id="sortSummary" style="color:var(--text-2)"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Score weights <button class="btn ghost" id="resetWeights">Reset</button></div>
+        <div id="weightRows"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Distance from home <button class="btn ghost" id="bandAll">All</button></div>
+        <div id="bandFilters"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Record confidence <button class="btn ghost" id="tierAll">All</button></div>
+        <div id="tierFilters"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Industry type
+          <span><button class="btn ghost" id="catAll">All</button><button class="btn ghost" id="catNone">None</button></span>
+        </div>
+        <div class="cat-scroll" id="catFilters"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Refine</div>
+        <div class="range-block">
+          <div class="range-label"><span>Min employees</span><b id="empMinV"></b></div>
+          <input type="range" id="empMin">
+        </div>
+        <div class="range-block">
+          <div class="range-label"><span>Max employees</span><b id="empMaxV"></b></div>
+          <input type="range" id="empMax">
+        </div>
+        <div class="range-block">
+          <div class="range-label"><span>Max drive time</span><b id="driveV"></b></div>
+          <input type="range" id="maxDrive" min="3" max="60" step="1" value="60">
+        </div>
+        <div class="range-block">
+          <div class="range-label"><span>Min placement score</span><b id="minScoreV"></b></div>
+          <input type="range" id="minScore" min="0" max="90" step="1" value="0">
+        </div>
+        <div class="switch-row" id="swOnsiteRow" style="margin-top:12px">
+          <span class="switch" id="swOnsite"></span>
+          <span>Only venues where staff are on site</span>
+        </div>
+        <div class="switch-row">
+          <span class="switch" id="swShort"></span>
+          <span>Only my shortlist</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content">
+      <nav class="tabbar">
+        <button class="tab on" data-view="map">◉ Map</button>
+        <button class="tab" data-view="list">☰ Ranked list</button>
+        <button class="tab" data-view="top">★ Top picks</button>
+        <button class="tab" data-view="shortlist">☆ Shortlist <span class="badge" id="tabShortlistCount">0</span></button>
+        <button class="tab" data-view="charts">▤ Analytics</button>
+        <button class="tab" data-view="method">◈ Method</button>
+        <div class="tabbar-spacer"></div>
+        <span class="result-count" id="resultCount"></span>
+      </nav>
+
+      <div class="view" data-view="map">
+        <div id="map"></div>
+        <div class="map-overlay map-tools">
+          <div class="seg">
+            <button id="mapColorBand" class="on">Distance</button>
+            <button id="mapColorCat">Industry</button>
+          </div>
+          <div class="switch-row"><span class="switch on" id="mapRings"></span><span>5 / 10 / 15 mi rings</span></div>
+          <button class="btn" id="mapFit">⤢ Fit to filtered sites</button>
+          <button class="btn" id="mapHome">★ Centre on home</button>
+        </div>
+        <div class="map-overlay map-legend" id="mapLegend"></div>
+      </div>
+
+      <div class="view pad" data-view="list" id="viewList" hidden></div>
+      <div class="view pad" data-view="top" id="viewTop" hidden></div>
+      <div class="view pad" data-view="shortlist" id="viewShort" hidden></div>
+      <div class="view pad" data-view="charts" id="viewCharts" hidden></div>
+      <div class="view pad" data-view="method" id="viewMethod" hidden></div>
+    </section>
+  </div>
+</div>
+
+<aside class="drawer" id="drawer">
+  <div class="drawer-head" id="drawerHead" style="position:relative"></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<div class="modal-bg" id="homeModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Set your home base</h2>
+      <p>Every distance, drive time, proximity score and servicing cost in the app is measured from here. Change it and all <span id="homeCount">365</span> sites are re-routed on the real road network.</p>
+    </div>
+    <div class="modal-body">
+      <label class="field-label" for="homeInput">Street address</label>
+      <input id="homeInput" type="text" class="text-input" placeholder="e.g. 1234 Example St, Colorado Springs, CO 80920" autocomplete="street-address">
+      <div style="font-size:11.5px;color:var(--text-3);margin-top:6px">Include the city and state. A ZIP code helps but is not required.</div>
+      <div class="progress"><i id="homeProg" style="width:0"></i></div>
+      <div style="font-size:11.5px;color:var(--text-3);margin-bottom:9px" id="homeStatus">Enter an address and press Set home base.</div>
+      <div class="log" id="homeLog"></div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:9px;line-height:1.5">
+        Geocoding uses the US Census geocoder with OpenStreetMap as a fallback; driving distances come from OSRM. Takes about ten seconds and needs an internet connection. Your home base is remembered in this browser, so different people using the same file each keep their own.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="homeReset">Reset to original</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="homeClose">Cancel</button>
+      <button class="btn primary" id="homeGo">Set home base</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="importModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Import a spreadsheet</h2>
+      <p>Drop in any .xlsx or .csv with company names and street addresses. Columns are matched by name, so <code>Company Name</code>, <code>Address</code>, <code>City</code>, <code>ZIP</code>, <code>Number of Employees</code> and a description column are all picked up automatically.</p>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="dropzone">
+        <div class="big">⬆</div>
+        <div style="font-weight:600">Drop a file here, or click to choose</div>
+        <div style="font-size:11.5px;color:var(--text-3);margin-top:4px">.xlsx · .xls · .csv</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+      <div class="progress"><i id="impProg" style="width:0"></i></div>
+      <div style="font-size:11.5px;color:var(--text-3);margin-bottom:9px" id="impStatus">Waiting for a file…</div>
+      <div class="log" id="impLog"></div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:9px;line-height:1.5">
+        Geocoding runs against the US Census geocoder and falls back to OpenStreetMap, then OSRM computes real driving distances. A few hundred rows takes a couple of minutes; results are cached so a re-import is fast. Needs an internet connection.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="impClose">Close</button>
+      <button class="btn primary" id="impGo" disabled>Geocode &amp; load</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>/*__LEAFLET_JS__*/</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>window.__DATA__=/*__DATA__*/;window.__RULES__=/*__RULES__*/;</script>
+<script>/*__JS__*/</script>
+</body>
+</html>

@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vending Siting Operator's Manual — Zenith &amp; Sky</title>
+<meta name="description" content="Every control in the Zenith &amp; Sky vending location app, what it does, and the arithmetic behind its numbers.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a5fb4'/%3E%3Ctext x='16' y='22' font-family='system-ui,sans-serif' font-size='15' font-weight='700' fill='white' text-anchor='middle'%3E%3F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+html{color-scheme:light dark}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+:root{
+  --ground:#f2f4f7; --surface:#ffffff; --surface-2:#f7f9fb; --sunk:#eaeef3;
+  --line:#dde3ea; --line-soft:#e9edf2;
+  --ink:#0f1620; --ink-2:#4a5765; --ink-3:#8695a4;
+  --accent:#1a5fb4; --accent-soft:#e6eefa; --accent-ink:#ffffff;
+  --b0:#127a4d; --b1:#d9a800; --b2:#e05a00; --b3:#a11c1c;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --warn:#b25e00;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0b0f15; --surface:#141a22; --surface-2:#19212b; --sunk:#1e2731;
+    --line:#2a343f; --line-soft:#212a34;
+    --ink:#e7edf4; --ink-2:#a6b4c2; --ink-3:#71818f;
+    --accent:#5aa2ff; --accent-soft:#14273f; --accent-ink:#08111d;
+    --b0:#2fa96b; --b1:#d9a91f; --b2:#f0712b; --b3:#ef5f5f;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --warn:#d9a91f;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0b0f15; --surface:#141a22; --surface-2:#19212b; --sunk:#1e2731;
+  --line:#2a343f; --line-soft:#212a34;
+  --ink:#e7edf4; --ink-2:#a6b4c2; --ink-3:#71818f;
+  --accent:#5aa2ff; --accent-soft:#14273f; --accent-ink:#08111d;
+  --b0:#2fa96b; --b1:#d9a91f; --b2:#f0712b; --b3:#ef5f5f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --warn:#d9a91f;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding-inline:20px; padding-block:0 72px}
+
+/* ---------------------------------------------------------------- masthead */
+.masthead{padding-block:52px 30px; border-bottom:2px solid var(--ink); margin-bottom:34px}
+.eyebrow{
+  font-family:var(--mono); font-size:11.5px; font-weight:500; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 14px;
+}
+h1{
+  font-size:clamp(30px,5.2vw,46px); line-height:1.05; letter-spacing:-.028em;
+  font-weight:700; margin:0 0 14px; text-wrap:balance; max-width:16ch;
+}
+.standfirst{font-size:17px; color:var(--ink-2); max-width:60ch; margin:0 0 24px; line-height:1.55}
+.facts{display:flex; flex-wrap:wrap; gap:10px 30px; font-family:var(--mono); font-size:12px; color:var(--ink-3)}
+.facts b{color:var(--ink); font-weight:600}
+
+/* ------------------------------------------------------------------ layout */
+.shell{display:grid; grid-template-columns:216px minmax(0,1fr); gap:52px; align-items:start}
+@media (max-width:940px){ .shell{grid-template-columns:1fr; gap:30px} .toc{position:static !important; max-height:none !important} }
+
+.toc{position:sticky; top:20px; max-height:calc(100vh - 40px); overflow-y:auto; padding-bottom:10px}
+.toc-h{font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 12px; padding-bottom:9px; border-bottom:1px solid var(--line)}
+.toc a{
+  display:flex; gap:9px; align-items:baseline; padding:4px 0; color:var(--ink-2);
+  text-decoration:none; font-size:13.5px; line-height:1.4;
+}
+.toc a:hover{color:var(--accent)}
+.toc a .n{font-family:var(--mono); font-size:11px; color:var(--ink-3); flex:0 0 15px}
+.toc a:hover .n{color:var(--accent)}
+.toc .gap{height:11px}
+
+/* ---------------------------------------------------------------- sections */
+section{scroll-margin-top:20px; margin-bottom:44px}
+.sec-head{display:flex; align-items:baseline; gap:12px; margin-bottom:6px;
+  padding-bottom:9px; border-bottom:1px solid var(--line)}
+.sec-n{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent); flex:0 0 auto}
+h2{font-size:22px; font-weight:600; letter-spacing:-.018em; margin:0; text-wrap:balance}
+.sec-sub{color:var(--ink-3); font-size:13.5px; margin:0 0 20px}
+h3{font-size:15.5px; font-weight:600; letter-spacing:-.01em; margin:26px 0 9px}
+h3:first-child{margin-top:0}
+p{margin:0 0 13px; color:var(--ink-2); max-width:66ch}
+p strong, li strong{color:var(--ink); font-weight:600}
+a{color:var(--accent)}
+
+code,.k{font-family:var(--mono); font-size:.88em; background:var(--sunk);
+  padding:1.5px 6px; border-radius:4px; color:var(--ink); white-space:nowrap}
+.k{font-weight:600; border:1px solid var(--line); box-shadow:0 1px 0 var(--line)}
+
+/* control reference rows */
+.ctl{border-top:1px solid var(--line-soft)}
+.ctl-row{display:grid; grid-template-columns:200px minmax(0,1fr); gap:8px 24px;
+  padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start}
+@media (max-width:640px){ .ctl-row{grid-template-columns:1fr; gap:4px} }
+.ctl-name{font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.5;
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.ctl-body{color:var(--ink-2); font-size:14px; line-height:1.55}
+.ctl-body :is(p):last-child{margin-bottom:0}
+.tag{font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; padding:2px 6px; border-radius:3px;
+  background:var(--accent-soft); color:var(--accent); white-space:nowrap}
+
+/* tables */
+.tbl-scroll{overflow-x:auto; margin:6px 0 18px; border:1px solid var(--line); border-radius:8px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:13px; min-width:520px}
+th{
+  text-align:left; padding:9px 13px; background:var(--surface-2);
+  border-bottom:1px solid var(--line); font-family:var(--mono); font-weight:600;
+  font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); white-space:nowrap;
+}
+td{padding:8px 13px; border-bottom:1px solid var(--line-soft); color:var(--ink-2); vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.n, th.n{text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:12px; white-space:nowrap}
+td b{color:var(--ink); font-weight:600}
+.fld{font-family:var(--mono); font-size:12px; color:var(--ink); font-weight:500; white-space:nowrap}
+
+/* swatches */
+.sw{display:inline-grid; place-items:center; width:19px; height:19px; border-radius:5px;
+  font-family:var(--mono); font-size:10px; font-weight:600; color:#fff; vertical-align:-4px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.dot{display:inline-block; width:9px; height:9px; border-radius:2.5px; vertical-align:0px; margin-right:2px}
+
+/* callouts */
+.note{
+  background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0; padding:14px 17px; margin:18px 0; font-size:14px; color:var(--ink-2);
+}
+.note.warn{border-left-color:var(--warn)}
+.note-h{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:6px; font-weight:600}
+.note :is(p):last-child{margin-bottom:0}
+
+/* formula block */
+.formula{
+  background:var(--surface); border:1px solid var(--line); border-radius:8px;
+  padding:15px 18px; margin:14px 0 18px; font-family:var(--mono); font-size:12.5px;
+  color:var(--ink); line-height:1.9; overflow-x:auto;
+}
+.formula em{color:var(--ink-3); font-style:normal}
+
+/* recipes */
+.recipe{border-top:1px solid var(--line-soft); padding:15px 0; border-bottom:1px solid var(--line-soft)}
+.recipe + .recipe{border-top:0}
+.recipe-q{font-weight:600; color:var(--ink); margin:0 0 7px; font-size:14.5px}
+.recipe ol{margin:0; padding-left:19px; color:var(--ink-2); font-size:14px}
+.recipe li{margin-bottom:4px}
+.recipe li::marker{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+
+/* diagram */
+.figure{background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:20px; margin:6px 0 20px; overflow-x:auto}
+.figure svg{display:block; width:100%; height:auto; min-width:560px}
+.figcap{font-size:12.5px; color:var(--ink-3); margin-top:12px; line-height:1.5}
+.dg-fill{fill:var(--surface-2)}
+.dg-line{stroke:var(--line); fill:none; stroke-width:1.3}
+.dg-t{fill:var(--ink); font-family:var(--sans); font-size:11.5px; font-weight:600}
+.dg-s{fill:var(--ink-3); font-family:var(--sans); font-size:10px}
+.dg-num{fill:var(--accent-ink); font-family:var(--mono); font-size:10px; font-weight:600}
+
+ul.plain{margin:0 0 14px; padding-left:19px; color:var(--ink-2); font-size:14px}
+ul.plain li{margin-bottom:5px}
+ul.plain li::marker{color:var(--ink-3)}
+
+footer{margin-top:56px; padding-top:22px; border-top:2px solid var(--ink);
+  font-size:13px; color:var(--ink-3); display:flex; flex-wrap:wrap; gap:8px 28px}
+footer b{color:var(--ink-2); font-weight:500}
+
+</style>
+</head>
+<body>
+<p style="max-width:1180px;margin:0 auto;padding:14px 20px 0;font-family:var(--mono);font-size:12px">
+  <a href="index.html" style="color:var(--accent);text-decoration:none">&larr; Back to the app</a>
+</p>
+
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Zenith &amp; Sky · Operator's manual</p>
+  <h1>Vending Location Intelligence</h1>
+  <p class="standfirst">Every control in the app, what it does, and the arithmetic behind the numbers it shows you. Written to be looked things up in, not read front to back.</p>
+  <div class="facts">
+    <span><b>365</b> sites loaded</span>
+    <span>Home base <b>3544 Cape Romain Dr</b></span>
+    <span>Open with <b>index.html</b></span>
+    <span><b>59</b> verified · <b>38</b> flagged</span>
+    <span>Folder <b>Desktop / Zenith and Sky Vendihg / Location_web_app</b></span>
+  </div>
+</header>
+
+<div class="shell">
+
+<nav class="toc">
+  <p class="toc-h">Contents</p>
+  <a href="#start"><span class="n">01</span><span>Start here</span></a>
+  <a href="#anatomy"><span class="n">02</span><span>Anatomy of the screen</span></a>
+  <div class="gap"></div>
+  <a href="#topbar"><span class="n">03</span><span>Top bar</span></a>
+  <a href="#search"><span class="n">04</span><span>Search</span></a>
+  <a href="#sort"><span class="n">05</span><span>Sort by</span></a>
+  <a href="#weights"><span class="n">06</span><span>Score weights</span></a>
+  <a href="#bands"><span class="n">07</span><span>Distance from home</span></a>
+  <a href="#industry"><span class="n">08</span><span>Industry type</span></a>
+  <a href="#refine"><span class="n">09</span><span>Refine</span></a>
+  <div class="gap"></div>
+  <a href="#confidence"><span class="n">10</span><span>Record confidence</span></a>
+  <div class="gap"></div>
+  <a href="#map"><span class="n">11</span><span>Map</span></a>
+  <a href="#list"><span class="n">12</span><span>Ranked list</span></a>
+  <a href="#top"><span class="n">13</span><span>Top picks</span></a>
+  <a href="#shortlist"><span class="n">14</span><span>Shortlist</span></a>
+  <a href="#analytics"><span class="n">15</span><span>Analytics</span></a>
+  <a href="#method"><span class="n">16</span><span>Method</span></a>
+  <a href="#drawer"><span class="n">17</span><span>Detail panel</span></a>
+  <div class="gap"></div>
+  <a href="#homebase"><span class="n">18</span><span>Changing your home base</span></a>
+  <a href="#import"><span class="n">19</span><span>Import a spreadsheet</span></a>
+  <a href="#export"><span class="n">20</span><span>Export</span></a>
+  <a href="#keys"><span class="n">21</span><span>Keys &amp; saved state</span></a>
+  <a href="#math"><span class="n">22</span><span>The arithmetic</span></a>
+  <a href="#recipes"><span class="n">23</span><span>How do I…</span></a>
+  <a href="#trouble"><span class="n">24</span><span>When it looks wrong</span></a>
+</nav>
+
+<main>
+
+<!-- 01 ------------------------------------------------------------------ -->
+<section id="start">
+  <div class="sec-head"><span class="sec-n">01</span><h2>Start here</h2></div>
+  <p class="sec-sub">Three things worth doing in the first five minutes.</p>
+
+  <div class="recipe">
+    <p class="recipe-q">See the twelve best sites right now</p>
+    <ol>
+      <li>Open <code>index.html</code>.</li>
+      <li>Click <b>★ Top picks</b>.</li>
+      <li>Each card explains in one line why it ranks where it does. Click any card for the HR contact and phone number.</li>
+    </ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">Find everything close enough to service on a lunch break</p>
+    <ol>
+      <li>In the sidebar under <b>Distance from home</b>, click bands <span class="sw" style="background:var(--b1)">2</span> <span class="sw" style="background:var(--b2)">3</span> <span class="sw" style="background:var(--b3)">4</span> to switch them off. Only band <span class="sw" style="background:var(--b0)">1</span> stays on.</li>
+      <li>Go to <b>☰ Ranked list</b>. You now have the 56 sites inside five miles, ranked best first.</li>
+      <li>Star the ones worth a call, then flip on <b>Only my shortlist</b> to work through them.</li>
+    </ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">Build a call list you can actually work from</p>
+    <ol>
+      <li>Filter and sort until the list looks right.</li>
+      <li>Click <b>↓ Export CSV</b>. You get the visible rows, in the visible order, with HR name, phone, website and every score.</li>
+      <li>Open it in Excel and start dialling.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- 02 ------------------------------------------------------------------ -->
+<section id="anatomy">
+  <div class="sec-head"><span class="sec-n">02</span><h2>Anatomy of the screen</h2></div>
+  <p class="sec-sub">Five regions. Everything in this manual lives in one of them.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 900 430" role="img" aria-label="Wireframe of the app showing the top bar, sidebar, tab bar, main view and detail panel">
+      <!-- top bar -->
+      <rect x="1" y="1" width="898" height="42" rx="7" class="dg-fill" stroke="currentColor" stroke-width="1.3" style="stroke:var(--line)"/>
+      <text x="18" y="26" class="dg-t">ZS · Vending Location Intelligence</text>
+      <text x="470" y="26" class="dg-s">Home base chip</text>
+      <rect x="700" y="12" width="182" height="20" rx="5" fill="none" style="stroke:var(--line)" stroke-dasharray="3 3"/>
+      <text x="712" y="26" class="dg-s">Import · Export · { } · theme</text>
+      <circle cx="16" cy="16" r="10" fill="var(--accent)"/><text x="16" y="20" text-anchor="middle" class="dg-num">1</text>
+
+      <!-- sidebar -->
+      <rect x="1" y="52" width="212" height="377" rx="7" class="dg-fill" stroke-width="1.3" style="stroke:var(--line)"/>
+      <text x="16" y="76" class="dg-t">Sidebar</text>
+      <text x="16" y="98" class="dg-s">Search</text>
+      <text x="16" y="120" class="dg-s">Sort by · up to 4 levels</text>
+      <text x="16" y="142" class="dg-s">Score weights · 5 sliders</text>
+      <text x="16" y="164" class="dg-s">Distance from home · 4 bands</text>
+      <text x="16" y="186" class="dg-s">Record confidence · 4 tiers</text>
+      <text x="16" y="208" class="dg-s">Industry type · 20 kinds</text>
+      <text x="16" y="230" class="dg-s">Refine · ranges &amp; toggles</text>
+      <line x1="16" y1="252" x2="197" y2="252" style="stroke:var(--line)" stroke-width="1"/>
+      <text x="16" y="274" class="dg-s">Changes here update</text>
+      <text x="16" y="288" class="dg-s">every tab at once.</text>
+      <circle cx="16" cy="67" r="10" fill="var(--accent)"/><text x="16" y="71" text-anchor="middle" class="dg-num">2</text>
+
+      <!-- tab bar -->
+      <rect x="223" y="52" width="450" height="34" rx="7" class="dg-fill" stroke-width="1.3" style="stroke:var(--line)"/>
+      <text x="248" y="74" class="dg-s">Map · Ranked list · Top picks · Shortlist · Analytics · Method</text>
+      <circle cx="238" cy="69" r="10" fill="var(--accent)"/><text x="238" y="73" text-anchor="middle" class="dg-num">3</text>
+
+      <!-- main -->
+      <rect x="223" y="95" width="450" height="334" rx="7" class="dg-fill" stroke-width="1.3" style="stroke:var(--line)"/>
+      <text x="248" y="126" class="dg-t">Main view</text>
+      <text x="248" y="146" class="dg-s">The current tab draws here.</text>
+      <circle cx="238" cy="117" r="10" fill="var(--accent)"/><text x="238" y="121" text-anchor="middle" class="dg-num">4</text>
+      <!-- little map hint -->
+      <circle cx="430" cy="270" r="52" fill="none" style="stroke:var(--b2)" stroke-dasharray="4 4" opacity=".7"/>
+      <circle cx="430" cy="270" r="34" fill="none" style="stroke:var(--b1)" stroke-dasharray="4 4" opacity=".7"/>
+      <circle cx="430" cy="270" r="17" fill="none" style="stroke:var(--b0)" stroke-dasharray="4 4" opacity=".7"/>
+      <circle cx="430" cy="270" r="6" fill="var(--accent)"/>
+      <circle cx="404" cy="256" r="7" fill="var(--b0)"/><circle cx="452" cy="292" r="9" fill="var(--b1)"/>
+      <circle cx="470" cy="238" r="6" fill="var(--b2)"/><circle cx="380" cy="308" r="8" fill="var(--b3)"/>
+      <text x="248" y="410" class="dg-s">Marker size = daily audience · colour = distance band</text>
+
+      <!-- drawer -->
+      <rect x="683" y="52" width="216" height="377" rx="7" class="dg-fill" stroke-width="1.3" style="stroke:var(--line)" stroke-dasharray="5 4"/>
+      <text x="698" y="76" class="dg-t">Detail panel</text>
+      <text x="698" y="98" class="dg-s">Opens the moment you click</text>
+      <text x="698" y="112" class="dg-s">a row, card or map pin.</text>
+      <text x="698" y="142" class="dg-s">Score composition</text>
+      <text x="698" y="164" class="dg-s">Record confidence</text>
+      <text x="698" y="186" class="dg-s">Trip &amp; location</text>
+      <text x="698" y="208" class="dg-s">Site &amp; audience</text>
+      <text x="698" y="230" class="dg-s">Projected economics</text>
+      <text x="698" y="252" class="dg-s">HR contact + actions</text>
+      <circle cx="698" cy="67" r="10" fill="var(--accent)"/><text x="698" y="71" text-anchor="middle" class="dg-num">5</text>
+    </svg>
+    <p class="figcap">The sidebar filters and ranks; the tabs are five views of the same filtered set. Nothing in a tab has its own hidden filter — what you set on the left is what every tab shows.</p>
+  </div>
+</section>
+
+<!-- 03 ------------------------------------------------------------------ -->
+<section id="topbar">
+  <div class="sec-head"><span class="sec-n">03</span><h2>Top bar</h2></div>
+  <p class="sec-sub">Six things, left to right.</p>
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name">ZS · title block</div>
+      <div class="ctl-body">Under the title, the small grey line reports how many sites are loaded and which file they came from. After an import it changes to <code>Imported spreadsheet</code>, which is how you tell at a glance that you are no longer looking at the original list.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">★ Home base <span class="tag">click me</span></div>
+      <div class="ctl-body">The address every distance in the app is measured from. Click it to change it — see <a href="#homebase">§18</a>. Each person who opens this file keeps their own home base.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">↑ Import Excel</div>
+      <div class="ctl-body">Opens the import dialog. Loads a different spreadsheet, geocodes it and replaces everything on screen. Full walkthrough in <a href="#import">§16</a>.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">↓ Export CSV</div>
+      <div class="ctl-body">Downloads exactly what is on screen right now — the filtered rows, in the sorted order, with all 35 columns. Not the whole dataset. Filter first, then export. The Ranked list, Top picks and Shortlist tabs each carry their own export button too; see <a href="#export">§20</a>.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">{ }<span class="tag">advanced</span></div>
+      <div class="ctl-body">Exports the whole enriched dataset as <code>companies.json</code> — all sites regardless of filters, with coordinates, drive times and scores. Use it to make an import permanent: save it over <code>data/companies.json</code> and run <code>python3 scripts/build.py</code>.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">? Guide</div>
+      <div class="ctl-body">Opens this manual in a new tab.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">☾ / ☀</div>
+      <div class="ctl-body">Light and dark. Charts, map tiles and the whole palette re-render for the theme you pick, and the choice is remembered next time you open the file.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 ------------------------------------------------------------------ -->
+<section id="search">
+  <div class="sec-head"><span class="sec-n">04</span><h2>Search</h2></div>
+  <p class="sec-sub">Top of the sidebar. Press <span class="k">/</span> from anywhere to jump into it.</p>
+  <p>One box, matched against seven fields at once: company name, street address, city, ZIP, the NAICS business description, the industry label the app assigned, and the HR contact name. Matching is case-insensitive and partial, so <code>nevada</code> finds every site on N Nevada Ave and <code>hospital</code> finds both the venues named "Hospital" and the ones whose NAICS description mentions one.</p>
+  <p>Search stacks with every other filter rather than replacing it — if bands 3 and 4 are switched off, searching only looks inside the remaining sites. Clear it with the <b>✕</b> on the right of the box.</p>
+</section>
+
+<!-- 05 ------------------------------------------------------------------ -->
+<section id="sort">
+  <div class="sec-head"><span class="sec-n">05</span><h2>Sort by</h2></div>
+  <p class="sec-sub">Up to four levels, applied in the order they are listed.</p>
+
+  <h3>How a rule works</h3>
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name">Numbered badge</div>
+      <div class="ctl-body">The level. Level 1 decides the order; level 2 only breaks ties in level 1, and so on. So <b>Industry ↑</b> then <b>Placement score ↓</b> groups the list by industry and ranks within each group.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Dropdown</div>
+      <div class="ctl-body">Picks the field. Changing it resets that level to the field's natural direction — distance defaults to nearest-first, score to highest-first.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">↓ / ↑</div>
+      <div class="ctl-body">Flips the direction of that level. ↓ is largest or latest first; ↑ is smallest or A–Z first.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">↑ (second arrow)</div>
+      <div class="ctl-body">Promotes the rule one level up, so you can reorder priority without deleting and re-adding.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">✕</div>
+      <div class="ctl-body">Removes the level. Remove them all and the app falls back to placement score, highest first.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">+ Add level</div>
+      <div class="ctl-body">Adds another rule, pre-filled with the first field you are not already sorting on. Greys out at four.</div>
+    </div>
+  </div>
+  <p>The grey line underneath — <i>Applied in order: …</i> — always spells out the sort in plain words, so you can confirm the list is doing what you think it is.</p>
+
+  <h3>The fifteen fields</h3>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Field</th><th>What it sorts on</th><th class="n">Default</th></tr></thead>
+    <tbody>
+      <tr><td class="fld">Placement score</td><td>The weighted composite, 0–100. The app's overall opinion.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Drive distance (mi)</td><td>Real road miles from home, one way.</td><td class="n">near → far</td></tr>
+      <tr><td class="fld">Drive time (min)</td><td>Real driving minutes, one way. Often a better guide than miles — 8 miles up I-25 beats 5 across town.</td><td class="n">short → long</td></tr>
+      <tr><td class="fld">Straight-line (mi)</td><td>Crow-flies distance. Useful for spotting sites that are close but awkward to reach.</td><td class="n">near → far</td></tr>
+      <tr><td class="fld">Employees (total)</td><td>Headcount exactly as your spreadsheet reports it, uncorrected.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Daily on-site audience</td><td>The corrected figure — staff actually at that address, plus visitors. <b>This is the one to trust.</b></td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Est. monthly net ($)</td><td>Modelled margin less the cost of driving there twice a month.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Est. monthly revenue</td><td>Modelled gross sales before margin and servicing.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Industry fit</td><td>How well vending converts at that venue type, 0–100.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Captive / dwell time</td><td>How hard it is to walk out for food instead, 0–100.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Route density (1.5 mi)</td><td>How many other listed sites sit within 1.5 miles. High means one trip can service several machines.</td><td class="n">high → low</td></tr>
+      <tr><td class="fld">Industry (A–Z)</td><td>The venue type label. Best used as level 1 with score as level 2.</td><td class="n">A → Z</td></tr>
+      <tr><td class="fld">Company name (A–Z)</td><td>Alphabetical. For finding a specific firm in a long list.</td><td class="n">A → Z</td></tr>
+      <tr><td class="fld">City (A–Z)</td><td>Groups Monument, Fountain, Woodland Park and the rest together.</td><td class="n">A → Z</td></tr>
+      <tr><td class="fld">ZIP code</td><td>Groups by postal area — a rough proxy for a service run.</td><td class="n">low → high</td></tr>
+    </tbody>
+  </table></div>
+  <p>Clicking a column header on the <b>Ranked list</b> tab is a shortcut: it replaces the whole sort with a single level on that column, and clicking the same header again flips the direction.</p>
+</section>
+
+<!-- 06 ------------------------------------------------------------------ -->
+<section id="weights">
+  <div class="sec-head"><span class="sec-n">06</span><h2>Score weights</h2></div>
+  <p class="sec-sub">Five sliders. They decide what "best" means, and everything downstream follows.</p>
+
+  <p>Each site carries five sub-scores, all on a 0–100 scale. The placement score is their weighted mean. The sliders set the weights; the percentages shown always add to 100 no matter where you drag them, so you are setting proportions, not absolute values. Move one and the ranked list, the top picks, the map ordering and every chart recompute immediately.</p>
+
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name"><span class="dot" style="background:var(--s1)"></span>Audience size<span class="tag">30%</span></div>
+      <div class="ctl-body">How many people are at that address on a normal day — corrected staff plus visitors. Log-scaled, so the gap between 50 and 500 people counts for far more than the gap between 2,500 and 3,000.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name"><span class="dot" style="background:var(--s2)"></span>Proximity<span class="tag">25%</span></div>
+      <div class="ctl-body">How cheap and quick the site is to restock. Decays smoothly with driving distance rather than stepping at the band edges: 100 at the door, about 64 at five miles, 41 at ten, 17 at twenty.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name"><span class="dot" style="background:var(--s3)"></span>Industry fit<span class="tag">25%</span></div>
+      <div class="ctl-body">How well vending converts at that kind of venue. A fixed value per venue type — 95 for a hospital or a factory floor, 35 for a restaurant that sells food itself. Full table in <a href="#industry">§8</a>.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name"><span class="dot" style="background:var(--s4)"></span>Captive audience<span class="tag">12%</span></div>
+      <div class="ctl-body">How easily people can leave for food instead. High on a secure campus or a hospital night shift; low at a downtown office ringed by lunch spots.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name"><span class="dot" style="background:var(--s5)"></span>Route density<span class="tag">8%</span></div>
+      <div class="ctl-body">How many other listed sites sit within 1.5 miles. A cluster means one restock trip can serve several machines, which changes the economics of the whole route rather than one placement.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Reset</div>
+      <div class="ctl-body">Puts all five back to 30 / 25 / 25 / 12 / 8.</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="note-h">Worth trying</div>
+    <p>Drag <b>Proximity</b> to zero. The list becomes "best sites in the county, ignore the drive" — useful for deciding whether a distant hospital is worth the trip. Then drag it to the top and everything else down: that is the "which machine can I top up on the way home" list.</p>
+  </div>
+</section>
+
+<!-- 07 ------------------------------------------------------------------ -->
+<section id="bands">
+  <div class="sec-head"><span class="sec-n">07</span><h2>Distance from home</h2></div>
+  <p class="sec-sub">Four service rings. Click a row to include or exclude that band.</p>
+
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Band</th><th>Driving distance</th><th>What it means for a route</th><th class="n">Sites</th></tr></thead>
+    <tbody>
+      <tr><td><span class="sw" style="background:var(--b0)">1</span> <b>Green</b></td><td>under 5 mi</td><td>Same-day top-up is trivial. Restock on the way past.</td><td class="n">56</td></tr>
+      <tr><td><span class="sw" style="background:var(--b1)">2</span> <b>Yellow</b></td><td>5 – 10 mi</td><td>A comfortable weekly loop.</td><td class="n">135</td></tr>
+      <tr><td><span class="sw" style="background:var(--b2)">3</span> <b>Orange</b></td><td>10 – 15 mi</td><td>Worth it batched with neighbours, not alone.</td><td class="n">128</td></tr>
+      <tr><td><span class="sw" style="background:var(--b3)">4</span> <b>Red</b></td><td>15 mi and up</td><td>Needs real volume to justify the trip.</td><td class="n">46</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>The count on each row is the total in the dataset, so it does not move as you filter — it is there to tell you how much you are about to switch off. <b>All</b> in the panel header turns every band back on.</p>
+
+  <div class="note warn">
+    <div class="note-h">Read the map carefully here</div>
+    <p>The dashed rings drawn on the map are a <b>straight-line</b> radius. The band colours follow <b>real driving distance</b>. A site can sit just inside the 5-mile ring and still be coloured yellow, because the road there loops around a canyon or crosses I-25 twice. The colour is the honest number; the ring is only a visual anchor.</p>
+  </div>
+</section>
+
+<!-- 08 ------------------------------------------------------------------ -->
+<section id="industry">
+  <div class="sec-head"><span class="sec-n">08</span><h2>Industry type</h2></div>
+  <p class="sec-sub">Twenty venue types. Click any row to include or exclude it; <b>All</b> and <b>None</b> are in the panel header.</p>
+
+  <p>Each company was placed into a venue type from its NAICS code, its business description and its name. The venue type is not just a label — it carries four numbers that shape everything the app says about that site.</p>
+
+  <ul class="plain">
+    <li><b>Fit</b> — how well vending converts there, 0–100. Feeds the Industry fit sub-score.</li>
+    <li><b>Dwell</b> — how captive the audience is, 0–100. Feeds the Captive audience sub-score.</li>
+    <li><b>On site</b> — the share of reported headcount actually at that address on a given day.</li>
+    <li><b>Visitors</b> — daily non-employee footfall, as a multiple of the on-site staff. A hotel at 2.2× sees more than three times as many guests as staff.</li>
+    <li><b>7-day</b> — whether the site runs weekends and multiple shifts. Sets the month at 30 operating days instead of 21.</li>
+  </ul>
+
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Venue type</th><th>Map letter</th><th class="n">Fit</th><th class="n">Dwell</th><th class="n">On site</th><th class="n">Visitors</th><th class="n">7-day</th><th class="n">Sites</th></tr></thead>
+    <tbody>
+      <tr><td><span class="dot" style="background:#e0466c"></span><b>Healthcare &amp; Hospitals</b></td><td class="n">H</td><td class="n">95</td><td class="n">98</td><td class="n">75%</td><td class="n">0.9×</td><td class="n">yes</td><td class="n">36</td></tr>
+      <tr><td><span class="dot" style="background:#f4791f"></span><b>Manufacturing &amp; Industrial</b></td><td class="n">M</td><td class="n">95</td><td class="n">95</td><td class="n">85%</td><td class="n">0.05×</td><td class="n">yes</td><td class="n">42</td></tr>
+      <tr><td><span class="dot" style="background:#8d6e63"></span><b>Logistics &amp; Warehousing</b></td><td class="n">L</td><td class="n">92</td><td class="n">90</td><td class="n">60%</td><td class="n">0.1×</td><td class="n">yes</td><td class="n">12</td></tr>
+      <tr><td><span class="dot" style="background:#3d5afe"></span><b>Aerospace &amp; Defense</b></td><td class="n">A</td><td class="n">90</td><td class="n">92</td><td class="n">85%</td><td class="n">0.05×</td><td class="n">no</td><td class="n">4</td></tr>
+      <tr><td><span class="dot" style="background:#00acc1"></span><b>Call Center &amp; Back Office</b></td><td class="n">C</td><td class="n">90</td><td class="n">88</td><td class="n">90%</td><td class="n">0.03×</td><td class="n">no</td><td class="n">11</td></tr>
+      <tr><td><span class="dot" style="background:#7cb342"></span><b>Education &amp; Campus</b></td><td class="n">E</td><td class="n">85</td><td class="n">80</td><td class="n">80%</td><td class="n">1.6×</td><td class="n">no</td><td class="n">15</td></tr>
+      <tr><td><span class="dot" style="background:#ec407a"></span><b>Hotels &amp; Hospitality</b></td><td class="n">T</td><td class="n">85</td><td class="n">88</td><td class="n">70%</td><td class="n">2.2×</td><td class="n">yes</td><td class="n">17</td></tr>
+      <tr><td><span class="dot" style="background:#26a69a"></span><b>Fitness, Sports &amp; Venues</b></td><td class="n">G</td><td class="n">82</td><td class="n">60</td><td class="n">60%</td><td class="n">3.0×</td><td class="n">no</td><td class="n">4</td></tr>
+      <tr><td><span class="dot" style="background:#fbc02d"></span><b>Utilities &amp; Energy</b></td><td class="n">U</td><td class="n">82</td><td class="n">78</td><td class="n">60%</td><td class="n">0.05×</td><td class="n">yes</td><td class="n">10</td></tr>
+      <tr><td><span class="dot" style="background:#c77dff"></span><b>Senior Living &amp; Care</b></td><td class="n">S</td><td class="n">80</td><td class="n">85</td><td class="n">65%</td><td class="n">0.6×</td><td class="n">yes</td><td class="n">18</td></tr>
+      <tr><td><span class="dot" style="background:#5c6bc0"></span><b>Government &amp; Public</b></td><td class="n">P</td><td class="n">80</td><td class="n">75</td><td class="n">80%</td><td class="n">0.7×</td><td class="n">no</td><td class="n">9</td></tr>
+      <tr><td><span class="dot" style="background:#ff7043"></span><b>Automotive &amp; Dealerships</b></td><td class="n">V</td><td class="n">78</td><td class="n">70</td><td class="n">85%</td><td class="n">1.4×</td><td class="n">no</td><td class="n">25</td></tr>
+      <tr><td><span class="dot" style="background:#9575cd"></span><b>Residential &amp; Apartments</b></td><td class="n">R</td><td class="n">75</td><td class="n">85</td><td class="n">30%</td><td class="n">6.0×</td><td class="n">yes</td><td class="n">2</td></tr>
+      <tr><td><span class="dot" style="background:#29b6f6"></span><b>Tech &amp; Software</b></td><td class="n">D</td><td class="n">60</td><td class="n">65</td><td class="n">72%</td><td class="n">0.05×</td><td class="n">no</td><td class="n">23</td></tr>
+      <tr><td><span class="dot" style="background:#78909c"></span><b>Finance &amp; Insurance</b></td><td class="n">F</td><td class="n">58</td><td class="n">55</td><td class="n">85%</td><td class="n">0.2×</td><td class="n">no</td><td class="n">4</td></tr>
+      <tr><td><span class="dot" style="background:#90a4ae"></span><b>Professional Services</b></td><td class="n">B</td><td class="n">55</td><td class="n">55</td><td class="n">78%</td><td class="n">0.1×</td><td class="n">no</td><td class="n">43</td></tr>
+      <tr><td><span class="dot" style="background:#a1887f"></span><b>Construction &amp; Trades</b></td><td class="n">K</td><td class="n">50</td><td class="n">40</td><td class="n">25%</td><td class="n">0.05×</td><td class="n">no</td><td class="n">29</td></tr>
+      <tr><td><span class="dot" style="background:#bdbdbd"></span><b>Nonprofit &amp; Religious</b></td><td class="n">N</td><td class="n">45</td><td class="n">45</td><td class="n">70%</td><td class="n">1.1×</td><td class="n">no</td><td class="n">29</td></tr>
+      <tr><td><span class="dot" style="background:#b0846c"></span><b>Field &amp; Facility Services</b></td><td class="n">J</td><td class="n">45</td><td class="n">40</td><td class="n">15%</td><td class="n">0.05×</td><td class="n">no</td><td class="n">19</td></tr>
+      <tr><td><span class="dot" style="background:#d4a373"></span><b>Retail &amp; Food Service</b></td><td class="n">X</td><td class="n">35</td><td class="n">45</td><td class="n">85%</td><td class="n">2.0×</td><td class="n">no</td><td class="n">13</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <div class="note-h">Why the on-site column matters more than it looks</div>
+    <p>Master Klean Janitorial reports 650 employees. At 15% on site, the app credits it with about 98 people — the rest are in other people's buildings. A 250-person hospital at 75% plus a 0.9× visitor flow is credited with roughly 356. That single correction is why the ranking does not simply follow headcount, and it is the main reason the list is worth more than sorting the spreadsheet in Excel.</p>
+  </div>
+
+  <p>The map letter is what appears inside each pin when you switch the map to colour by industry — so the map stays readable if two venue colours are hard to tell apart.</p>
+</section>
+
+<!-- 09 ------------------------------------------------------------------ -->
+<section id="refine">
+  <div class="sec-head"><span class="sec-n">09</span><h2>Refine</h2></div>
+  <p class="sec-sub">Four ranges and two switches, at the bottom of the sidebar.</p>
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name">Min employees</div>
+      <div class="ctl-body">Hides anything below the figure. Runs from 50 (the smallest in your list) to 3,162. Push it to 200 or so to strip out the small offices.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Max employees</div>
+      <div class="ctl-body">Hides anything above it. Useful in reverse — capping at 300 shows the mid-size sites that a national vending operator is less likely to have already signed. The two sliders push each other rather than crossing over.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Max drive time</div>
+      <div class="ctl-body">Caps one-way driving minutes. Opens at 65, which includes everything. Drop it to 15 for the sites you can reach inside a quarter of an hour.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Min placement score</div>
+      <div class="ctl-body">Hides anything scoring below the value. Because the score depends on your weight sliders, this filter moves when you change the weights — it is a quality floor, not a fixed cut.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Only venues where staff are on site</div>
+      <div class="ctl-body">Hides the three venue types whose workforce is mostly somewhere else: <b>Construction &amp; Trades</b> (25% on site), <b>Residential &amp; Apartments</b> (30%) and <b>Field &amp; Facility Services</b> (15%). Fifty sites in all. Turn it on when you want a call list with no wasted visits.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Only my shortlist</div>
+      <div class="ctl-body">Narrows every tab — the map included — to the sites you starred. For working through the shortlist with contacts and totals, use the <a href="#shortlist">Shortlist tab</a> instead.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 ------------------------------------------------------------------ -->
+<section id="confidence">
+  <div class="sec-head"><span class="sec-n">10</span><h2>Record confidence</h2></div>
+  <p class="sec-sub">Every site was cross-checked. The sidebar panel filters on the result; the badge appears everywhere the company does.</p>
+
+  <p>The check answers <b>"does this record hold together"</b> — not "is this business solvent". No public source can tell you the latter, and the app does not pretend otherwise. What it can do is tell you which records are independently confirmed and which have something worth two minutes of your time before you drive out.</p>
+
+  <h3>The four tiers</h3>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Badge</th><th>Means</th><th class="n">Sites</th></tr></thead>
+    <tbody>
+      <tr><td><span class="sw" style="background:#127a4d">✓</span> <b>Verified</b></td><td>A business of this name sits at this location on OpenStreetMap, and nothing else looks off.</td><td class="n">59</td></tr>
+      <tr><td><span class="sw" style="background:#5c6bc0">•</span> <b>Consistent</b></td><td>Nothing contradicts the record — but nothing independently confirms it either. Most of the list.</td><td class="n">268</td></tr>
+      <tr><td><span class="sw" style="background:#d9a800">!</span> <b>One thing to check</b></td><td>One check failed. The badge shows the count; the detail panel says which.</td><td class="n">38</td></tr>
+      <tr><td><span class="sw" style="background:#e05a00">!!</span> <b>Needs a check</b></td><td>Two or more failed. None in the current list.</td><td class="n">0</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Where the evidence comes from</h3>
+  <p><b>External.</b> All 365 addresses were matched against an OpenStreetMap extract of El Paso and Teller counties — 9,486 named places pulled through the Overpass API. Where a business of the same name sits within 400 m of the geocoded point, the record is <b>Verified</b>. Where the street address exists but under a different business name, that is recorded too, since it usually means the tenant changed.</p>
+  <div class="note">
+    <div class="note-h">The important caveat</div>
+    <p><b>A missing OpenStreetMap record proves nothing.</b> Most ordinary offices are simply not mapped — 259 of the 365 have no OSM entry at all. Absence never raises a warning on its own, and you should not read "Consistent" as suspicion.</p>
+  </div>
+
+  <p><b>Internal.</b> Seven deterministic checks run over the spreadsheet itself:</p>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Check</th><th>What it catches</th><th class="n">Level</th><th class="n">Hits</th></tr></thead>
+    <tbody>
+      <tr><td class="fld">Phone area code</td><td>Number rings a corporate switchboard outside Colorado, so the "HR Director" is not the person who decides what goes in that break room.</td><td class="n">warning</td><td class="n">33</td></tr>
+      <tr><td class="fld">Approximate location</td><td>The address fell back to a ZIP centroid or a named-place match, so the pin may be off by a block or more.</td><td class="n">warning</td><td class="n">4</td></tr>
+      <tr><td class="fld">No street number</td><td>The address is a mail code or PO box, not a building you can walk into.</td><td class="n">warning</td><td class="n">1</td></tr>
+      <tr><td class="fld">Shared address</td><td>Other listed companies occupy the same building — the headcount may belong to the whole tower, so treat the audience as an upper bound.</td><td class="n">note</td><td class="n">43</td></tr>
+      <tr><td class="fld">Repeat company</td><td>The same company appears more than once, at different sites. Don't count it twice.</td><td class="n">note</td><td class="n">52</td></tr>
+      <tr><td class="fld">Website mismatch</td><td>The domain does not resemble the company name — often a parent or an acquirer.</td><td class="n">note</td><td class="n">130</td></tr>
+      <tr><td class="fld">Shared phone</td><td>Two companies listed with the same number, a common list-broker artefact.</td><td class="n">note</td><td class="n">0</td></tr>
+    </tbody>
+  </table></div>
+  <p>Only the first three raise a warning and affect the tier. The rest are context shown in the detail panel. Your list has no duplicate phone numbers at all, which is a good sign about where it came from.</p>
+
+  <h3>Settling a flag</h3>
+  <p>Open the site's detail panel. The <b>Record confidence</b> section lists every check with its result, and two buttons underneath open a web search for that exact company and address, and a Google Maps view of the building. Ten seconds usually settles it.</p>
+
+  <div class="note warn">
+    <div class="note-h">The one to act on</div>
+    <p>Of the 38 flagged records, 33 are out-of-state phone numbers. That is the single most useful thing the check found: for those sites, the number in your sheet reaches a national HR line, not the local facility. Call the site's main number instead, or ask the switchboard for the local facilities manager.</p>
+  </div>
+</section>
+
+<!-- 11 ------------------------------------------------------------------ -->
+<section id="map">
+  <div class="sec-head"><span class="sec-n">11</span><h2>Map</h2></div>
+  <p class="sec-sub">Where the sites actually are, relative to your door.</p>
+
+  <h3>Reading a pin</h3>
+  <p>Three things are encoded in every marker at once. <b>Colour</b> is the distance band, <b>the numeral inside</b> repeats that band so the map still reads if the colours are hard to tell apart, and <b>size</b> scales with estimated daily audience — the biggest circles are the sites with the most people in the building. Hovering lifts a pin above its neighbours; the highest-scoring pins already sit on top where markers overlap.</p>
+
+  <h3>Hover, then click</h3>
+  <p><b>Hover</b> a pin for a one-line tooltip: company, drive distance and time, daily audience, score, and a warning line if the record has flags. Good for skimming a cluster without committing.</p>
+  <p><b>Click</b> and the full detail panel opens straight away — no intermediate popup, no second click. Click the next pin and the panel swaps to it, so you can work through a neighbourhood one pin at a time. The map only recentres when the pin you clicked is off screen, so the view stays where you put it.</p>
+  <p>Pins with record flags carry an orange ring. Everything in the panel is described in <a href="#drawer">§17</a>.</p>
+
+  <h3>The star</h3>
+  <p>The blue ★ is home. Click it for the address the distances are measured from.</p>
+
+  <h3>Controls, top right</h3>
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name">Distance / Industry</div>
+      <div class="ctl-body">Switches what the pin colour means. On <b>Distance</b>, pins are green/yellow/orange/red with the band numeral. On <b>Industry</b>, pins take the venue-type colour with its letter code inside, and the legend switches to list the twelve most common types in view. Size still means audience either way.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">5 / 10 / 15 mi rings</div>
+      <div class="ctl-body">Shows or hides the dashed circles around home, each labelled with its radius. Remember these are straight-line, not driving — see the warning in <a href="#bands">§7</a>.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">⤢ Fit to filtered sites</div>
+      <div class="ctl-body">Zooms and pans so every site currently passing your filters is on screen, home included. The quickest way to get your bearings after a heavy filter.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">★ Centre on home</div>
+      <div class="ctl-body">Snaps back to your address at a neighbourhood zoom.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">+ / − (top left)</div>
+      <div class="ctl-body">Standard zoom. Scroll wheel and drag work as you would expect; two fingers on a trackpad pan.</div>
+    </div>
+  </div>
+
+  <h3>The legend, bottom left</h3>
+  <p>Lists the bands or industries currently on the map with a live count of how many filtered sites fall in each — so it doubles as a breakdown of whatever you are looking at.</p>
+
+  <div class="note">
+    <div class="note-h">If the map is blank</div>
+    <p>The map tiles are the one thing the app fetches from the internet. Everything else — ranking, filtering, the analytics charts, export — works with no connection. A blank grey map means the tiles could not load, not that anything is broken.</p>
+  </div>
+</section>
+
+<!-- 11 ------------------------------------------------------------------ -->
+<section id="list">
+  <div class="sec-head"><span class="sec-n">12</span><h2>Ranked list</h2></div>
+  <p class="sec-sub">The whole filtered set as a table, in sorted order.</p>
+
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Column</th><th>Shows</th></tr></thead>
+    <tbody>
+      <tr><td class="fld">#</td><td>Position in the current sort. The badge is filled for the top ten.</td></tr>
+      <tr><td class="fld">Company</td><td>Name, with street address, city and ZIP underneath. The ☆ on the left adds it to your shortlist.</td></tr>
+      <tr><td class="fld">Industry</td><td>The venue type as a coloured pill.</td></tr>
+      <tr><td class="fld">Drive</td><td>Road miles in bold, one-way minutes underneath.</td></tr>
+      <tr><td class="fld">Employees</td><td>Raw headcount from your spreadsheet.</td></tr>
+      <tr><td class="fld">Audience</td><td>Corrected daily figure — staff on site plus visitors.</td></tr>
+      <tr><td class="fld">Est. net/mo</td><td>Modelled monthly contribution after product cost and servicing.</td></tr>
+      <tr><td class="fld">Score</td><td>Placement score with a bar showing it against 100.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Interactions</h3>
+  <ul class="plain">
+    <li><b>Click a header</b> to sort by that column. Clicking the same header again reverses it. This replaces your whole sort with one level — rebuild multi-level sorts in the sidebar.</li>
+    <li><b>Click a row</b> to open the detail panel. The row highlights so you keep your place.</li>
+    <li><b>Click the ☆</b> to shortlist without opening anything.</li>
+    <li>The header row stays put as you scroll.</li>
+  </ul>
+</section>
+
+<!-- 12 ------------------------------------------------------------------ -->
+<section id="top">
+  <div class="sec-head"><span class="sec-n">13</span><h2>Top picks</h2></div>
+  <p class="sec-sub">The best twelve under your current filters and weights, with reasoning.</p>
+
+  <h3>The five tiles</h3>
+  <div class="ctl">
+    <div class="ctl-row"><div class="ctl-name">Sites in scope</div><div class="ctl-body">How many survive your filters, out of the full list.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Best single site</div><div class="ctl-body">The top score out of 100, and which company holds it.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Top-10 net potential</div><div class="ctl-body">Modelled monthly contribution if you placed a machine at each of the top ten — a rough ceiling for a first route.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Median drive</div><div class="ctl-body">The middle distance across everything in scope. Half your sites are nearer than this.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Within 5 miles</div><div class="ctl-body">How many are close enough for one short service loop.</div></div>
+  </div>
+
+  <h3>The cards</h3>
+  <p>Each card carries its rank, venue type, drive distance, address, and four figures — score, daily audience, drive time and estimated monthly net. The italic line at the bottom is generated for that specific site: it names the distance, the audience size, whether the venue type converts well, whether it runs seven days, and whether it sits in a dense cluster. Click anywhere on a card for the full detail panel.</p>
+
+  <p>Change a weight slider and this page reshuffles. It is the fastest way to see what a different set of priorities would actually recommend.</p>
+</section>
+
+<!-- 14 ------------------------------------------------------------------ -->
+<section id="shortlist">
+  <div class="sec-head"><span class="sec-n">14</span><h2>Shortlist</h2></div>
+  <p class="sec-sub">The sites you starred, as a working call sheet. Its own tab, beside Ranked list and Top picks.</p>
+
+  <p>Star a site anywhere — the ☆ in the ranked list, the shortlist button in the detail panel — and it appears here. The count on the tab is live. Your shortlist is saved in this browser and survives closing the app.</p>
+
+  <h3>The five tiles</h3>
+  <div class="ctl">
+    <div class="ctl-row"><div class="ctl-name">Shortlisted</div><div class="ctl-body">How many you have starred, out of the full list.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Combined audience</div><div class="ctl-body">Total people per day across every shortlisted site.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Combined net</div><div class="ctl-body">Modelled monthly contribution if you placed a machine at every one of them.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Servicing all of them</div><div class="ctl-body">Round-trip miles and hours to visit the whole shortlist once. This is the number that tells you whether the shortlist is a route or a wish list.</div></div>
+    <div class="ctl-row"><div class="ctl-name">With flags</div><div class="ctl-body">How many carry a record warning worth settling before you call.</div></div>
+  </div>
+
+  <h3>The table</h3>
+  <p>Same columns as the ranked list, with one swap: the <b>HR contact</b> and their phone number replace the employee count, because this is the view you work from with a phone in your hand. The number is a live link — click it to dial. Rows follow whatever sort you have set in the sidebar, so <i>Drive time ↑</i> puts them in route order.</p>
+
+  <h3>Buttons</h3>
+  <div class="ctl">
+    <div class="ctl-row"><div class="ctl-name">↓ Export call sheet (CSV)</div><div class="ctl-body">Just the shortlist, in the order shown, with all 35 columns including the contact, phone and any flags.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Clear shortlist</div><div class="ctl-body">Empties it. There is no undo, so export first if you might want it back.</div></div>
+    <div class="ctl-row"><div class="ctl-name">★ on a row</div><div class="ctl-body">Removes that one site from the shortlist.</div></div>
+  </div>
+
+  <p>There is also a <b>Only my shortlist</b> toggle in the sidebar, which narrows every other tab — map included — to the starred sites. Use the tab to work the list; use the toggle to see the shortlist on the map.</p>
+</section>
+
+<!-- 15 ------------------------------------------------------------------ -->
+<section id="analytics">
+  <div class="sec-head"><span class="sec-n">15</span><h2>Analytics</h2></div>
+  <p class="sec-sub">Five tiles and five charts, all describing the filtered set — not the whole list.</p>
+
+  <h3>Tiles</h3>
+  <p><b>Filtered sites</b> and what share of the list that is · <b>Total employees</b> as reported · <b>Est. daily audience</b> after correction · <b>Median drive time</b> one way · <b>Industries</b> represented in scope.</p>
+
+  <h3>Charts</h3>
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name">Sites by distance band</div>
+      <div class="ctl-body">How your filtered set splits across the four rings. Tells you whether you are looking at a tight local route or a county-wide spread.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Drive time distribution</div>
+      <div class="ctl-body">A histogram of one-way minutes in five- and ten-minute bins, coloured by roughly which band the bin falls in. Where the mass sits tells you how long a full service run really takes.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Sites by industry</div>
+      <div class="ctl-body">Two readings in one row. The blue bar is how many sites of that type you have; the short coloured track on the right is the <b>average placement score</b> for the type. A long bar with a short track means lots of sites that are not worth much — that is what Professional Services looks like.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Audience against placement score</div>
+      <div class="ctl-body">Every site as one dot, audience on a log x-axis and score on the y. Up and to the right is a better prospect. Dots are coloured by band, the five best are labelled, and hovering any dot shows its name, audience, score and distance. Dots high on the left are small but excellent sites; dots low on the right are big buildings the model does not rate.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Top 15 by estimated monthly net</div>
+      <div class="ctl-body">Ranked by money rather than by score, with each bar coloured by distance band and labelled with its mileage. Useful sanity check — if the top of this chart is all red bars, your best money is all far away.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 ------------------------------------------------------------------ -->
+<section id="method">
+  <div class="sec-head"><span class="sec-n">16</span><h2>Method</h2></div>
+  <p class="sec-sub">The audit trail.</p>
+  <p>Six sections with diagrams, covering how addresses became coordinates, why driving distance is used instead of straight lines, how venue types were assigned, the headcount correction, how the score is assembled, and how the economics are modelled. It closes with what the tool cannot tell you.</p>
+  <p>Worth reading once before you make a decision you would defend to someone else — and worth pointing a sceptical property manager at if they ask where your numbers come from.</p>
+</section>
+
+<!-- 15 ------------------------------------------------------------------ -->
+<section id="drawer">
+  <div class="sec-head"><span class="sec-n">17</span><h2>Detail panel</h2></div>
+  <p class="sec-sub">Everything known about one site. Opens from any row, card or map pin; closes with <b>✕</b> or <span class="k">Esc</span>.</p>
+
+  <h3>Header</h3>
+  <p>Venue type and distance band as pills, company name, full address, then the placement score in large type with its rank out of all sites — the <i>global</i> rank, not the filtered one, so it does not shift as you filter.</p>
+
+  <h3>Record confidence</h3>
+  <p>Sits directly under the score. Lists every check that ran, with a ✓ for confirmations, a <b>!</b> for warnings and a <b>·</b> for context, each with its detail. Two buttons underneath open a web search for that exact company and address, and a Google Maps view of the building. Full explanation in <a href="#confidence">§10</a>.</p>
+
+  <h3>Score composition</h3>
+  <p>A stacked bar showing how the five sub-scores add up to the total at your current weights, with each segment labelled by the points it contributes. Beneath it, five bars give the <b>raw</b> sub-score out of 100 with the weight next to the name. Read together: the bars say how good the site is on each dimension, the stack says how much that mattered.</p>
+
+  <h3>Trip &amp; location</h3>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Row</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="fld">Driving distance</td><td>Road miles one way, to two decimals.</td></tr>
+      <tr><td class="fld">Driving time</td><td>Minutes one way, free-flow traffic.</td></tr>
+      <tr><td class="fld">Straight-line</td><td>Crow-flies miles. Compare with the road figure to see how indirect the route is.</td></tr>
+      <tr><td class="fld">Round trip per restock</td><td>Both distance and time doubled — what one service visit actually costs you.</td></tr>
+      <tr><td class="fld">Other listed sites ≤ 1.5 mi</td><td>How many neighbours, and their combined headcount. High numbers mean a route, not a stop.</td></tr>
+      <tr><td class="fld">Coordinates</td><td>Latitude and longitude to five decimals.</td></tr>
+      <tr><td class="fld">Geocode quality</td><td>How the address was located. <b>Exact rooftop</b> is metre-accurate. <b>Nearest address range</b> is on the right block. <b>OpenStreetMap</b> matched a named building. <b>ZIP centroid</b> is approximate — check it before driving out.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Site &amp; audience</h3>
+  <p>Reported employees, then the estimated number actually on site with the percentage applied, then estimated daily visitors, then the total audience in bold. Below that, whether the site runs seven days or weekdays only, the raw NAICS description from your sheet, and how the venue type was decided — <code>name</code> if the company name gave it away, <code>industry</code> if the NAICS description did, <code>naics</code> if it fell back to the numeric code.</p>
+
+  <h3>Projected unit economics</h3>
+  <p>Vends per day, operating days in the month, gross sales, product margin, servicing cost in amber, and net contribution in green or red. The note underneath restates the assumptions so you never read these numbers without them.</p>
+
+  <h3>HR contact and actions</h3>
+  <div class="ctl">
+    <div class="ctl-row"><div class="ctl-name">Phone</div><div class="ctl-body">A live <code>tel:</code> link — clicking it dials on a Mac with a phone paired, or hands off to your calling app.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Website</div><div class="ctl-body">Opens the company site in a new tab. Blank where your sheet had none.</div></div>
+    <div class="ctl-row"><div class="ctl-name">☆ / ★ shortlist</div><div class="ctl-body">Adds or removes the site from your shortlist.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Directions ↗</div><div class="ctl-body">Opens Google Maps with your home address as the origin and this site as the destination, ready to navigate.</div></div>
+    <div class="ctl-row"><div class="ctl-name">Copy details</div><div class="ctl-body">Puts a tidy block on your clipboard — name, address, HR contact and phone, website, headcount and audience, distance and time, score and net. Paste it straight into a CRM note or an email to yourself before a call.</div></div>
+  </div>
+</section>
+
+<!-- 18 ------------------------------------------------------------------ -->
+<section id="homebase">
+  <div class="sec-head"><span class="sec-n">18</span><h2>Changing your home base</h2></div>
+  <p class="sec-sub">Click the ★ home base chip in the top bar. Ten seconds, no command line.</p>
+
+  <p>Every distance, drive time, proximity score, servicing cost and net figure in the app is measured from one address. Type a new one and all 365 sites are re-routed on the real road network — the ranking, the map rings, the bands and the economics all move with it.</p>
+
+  <h3>What happens when you press <b>Set home base</b></h3>
+  <ol class="plain" style="list-style:decimal">
+    <li>The address goes to the <b>US Census geocoder</b>, falling back to <b>OpenStreetMap</b> if the Census cannot place it.</li>
+    <li>All 365 sites are re-routed through <b>OSRM</b> in batches, with a progress bar.</li>
+    <li>Driving miles, drive times, straight-line distances, distance bands, proximity scores, servicing costs and net contributions are recomputed.</li>
+    <li>The map recentres, the rings move, and every tab updates.</li>
+  </ol>
+  <p>The log tells you exactly what happened at each step. If routing cannot be reached, distances fall back to straight-line with a road factor applied and the log says so plainly — usually within 10–15% of the real drive, but set the address again once you are online for exact figures.</p>
+
+  <h3>Different people, different home bases</h3>
+  <p>Your home base is stored in your browser, alongside the routed distances so it is only computed once. Someone else opening the same file on their own machine gets their own home base and their own rankings, without touching yours. <b>Reset to original</b> puts it back to <code>3544 Cape Romain Dr</code> instantly, with no network needed.</p>
+
+  <div class="note">
+    <div class="note-h">Two ways to change it</div>
+    <p>The button is the fast way and is per-person. The command line — <code>python3 scripts/pipeline.py "data/List.xlsx" --home "…"</code> then <code>python3 scripts/build.py</code> — bakes a new default into <code>index.html</code> for everyone who opens it. Use the button for yourself; use the pipeline when you want to hand the file to someone with a different origin already set.</p>
+  </div>
+</section>
+
+<!-- 19 ------------------------------------------------------------------ -->
+<section id="import">
+  <div class="sec-head"><span class="sec-n">19</span><h2>Import a spreadsheet</h2></div>
+  <p class="sec-sub">Two ways in. The browser is easier; the command line is faster and matches more addresses.</p>
+
+  <h3>In the browser</h3>
+  <p>Click <b>↑ Import Excel</b>, then drop an <code>.xlsx</code>, <code>.xls</code> or <code>.csv</code> onto the dashed box, or click it to browse. Columns are matched by name — <code>Company Name</code>, <code>Address</code>, <code>City</code>, <code>State</code>, <code>ZIP</code>, <code>Phone</code>, <code>Website</code>, <code>Number of Employees</code>, a description column and <code>First Name</code> / <code>Last Name</code> are all found automatically. Only a company name and an address are strictly required; everything else degrades gracefully.</p>
+
+  <p>The log tells you what it found before you commit. Then click <b>Geocode &amp; load</b> and it runs three passes:</p>
+  <ol class="plain" style="list-style:decimal">
+    <li>Every address to the <b>US Census geocoder</b>, one at a time, with a progress bar.</li>
+    <li>Anything the Census could not match retried against <b>OpenStreetMap</b>, throttled to one a second.</li>
+    <li>Every located site routed through <b>OSRM</b> in batches for real driving distance and time. Anything routing misses falls back to straight-line distance with a road factor applied.</li>
+  </ol>
+  <p>A few hundred rows takes a couple of minutes. Geocodes are cached in the browser, so re-importing the same list is nearly instant. Rows that cannot be located at all are dropped and reported.</p>
+
+  <div class="note warn">
+    <div class="note-h">An import is not saved</div>
+    <p>It lives in the page until you reload. To keep it, click <b>{ }</b> to download the enriched dataset, save it over <code>data/companies.json</code>, then run <code>python3 scripts/build.py</code> in the project folder. That bakes it into <code>index.html</code> as the new default.</p>
+  </div>
+
+  <h3>From the command line</h3>
+  <p>Faster, and it uses the Census <i>batch</i> endpoint, which matches more addresses than the one-at-a-time browser call:</p>
+  <div class="formula">pip3 install openpyxl requests
+python3 scripts/pipeline.py "data/Your New List.xlsx"
+python3 scripts/build.py</div>
+  <p>This is also the only way to change the home base, since it is baked into the data:</p>
+  <div class="formula">python3 scripts/pipeline.py "data/Your List.xlsx" \
+  <em>--home</em> "123 Main St, Colorado Springs, CO"
+python3 scripts/build.py</div>
+  <p>Then reopen <code>index.html</code>. The pipeline prints its progress and tells you how many addresses it located and routed.</p>
+</section>
+
+<!-- 17 ------------------------------------------------------------------ -->
+<section id="export">
+  <div class="sec-head"><span class="sec-n">20</span><h2>Export</h2></div>
+
+  <h3>Four ways out, same columns</h3>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Button</th><th>Where</th><th>Exports</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td class="fld">↓ Export CSV</td><td>top bar</td><td>Everything passing your filters, in sorted order</td><td class="fld">filtered-sites-…</td></tr>
+      <tr><td class="fld">↓ Export this list</td><td>Ranked list tab</td><td>The same rows, from where you are working</td><td class="fld">ranked-list-…</td></tr>
+      <tr><td class="fld">↓ Export top picks</td><td>Top picks tab</td><td>Just the twelve on screen</td><td class="fld">top-picks-…</td></tr>
+      <tr><td class="fld">↓ Export call sheet</td><td>Shortlist tab</td><td>Just your starred sites</td><td class="fld">shortlist-call-sheet-…</td></tr>
+    </tbody>
+  </table></div>
+  <p>All four write the same 35 columns, UTF-8 with a byte-order mark so Excel opens them cleanly. Each file opens with four comment lines recording your home base, the export time, the row count and the score weights in force — so a CSV you find in six months explains itself.</p>
+  <p>Rank · Company · Address · City · State · ZIP · HR contact · Phone · Website · Industry · NAICS description · Employees · Est. on-site · Daily audience · Drive miles · Drive minutes · Straight-line miles · Latitude · Longitude · Geocode quality · <b>Record confidence</b> · <b>Record warnings</b> · <b>Flags to check</b> · Audience score · Proximity score · Fit score · Dwell score · Route density score · Placement score · Est. daily vends · Est. monthly revenue · Est. monthly gross · Est. service cost · Est. monthly net · Sites within 1.5 mi.</p>
+
+  <h3>{ } Export dataset</h3>
+  <p>Downloads the full <code>companies.json</code> — every site regardless of filters, with coordinates, drive metrics, venue classification and the raw sub-scores, plus the venue-type table and band definitions. This is the file the app reads at startup, so it is both a backup and the way to make an import permanent.</p>
+</section>
+
+<!-- 18 ------------------------------------------------------------------ -->
+<section id="keys">
+  <div class="sec-head"><span class="sec-n">21</span><h2>Keys &amp; saved state</h2></div>
+
+  <h3>Keyboard</h3>
+  <div class="ctl">
+    <div class="ctl-row"><div class="ctl-name"><span class="k">/</span></div><div class="ctl-body">Jump to the search box from anywhere.</div></div>
+    <div class="ctl-row"><div class="ctl-name"><span class="k">Esc</span></div><div class="ctl-body">Close the detail panel, or the import dialog.</div></div>
+  </div>
+
+  <h3>What the app remembers</h3>
+  <p>Between sessions, in your browser: your <b>theme</b>, your <b>score weights</b>, your <b>sort rules</b>, your <b>shortlist</b>, and the <b>geocode cache</b> from any import. Filters are deliberately not remembered — the app opens showing everything, so you never start from a filtered view you forgot you set.</p>
+  <p>All of this lives in the browser you opened the file with. Open the same file in a different browser and you get a fresh shortlist.</p>
+</section>
+
+<!-- 19 ------------------------------------------------------------------ -->
+<section id="math">
+  <div class="sec-head"><span class="sec-n">22</span><h2>The arithmetic</h2></div>
+  <p class="sec-sub">Every number the app shows, in full.</p>
+
+  <h3>Audience</h3>
+  <div class="formula">on site  = employees × <em>on-site share</em>
+audience = on site × (1 + <em>visitor multiplier</em>)</div>
+
+  <h3>The five sub-scores</h3>
+  <div class="formula">audience score  = log₁₀(audience) rescaled to 0–100  <em>(≈13 people → 0, ≈2,500 → 100)</em>
+proximity score = 100 × e^(−miles ÷ 11)              <em>(0 mi → 100, 5 → 64, 10 → 41, 20 → 17)</em>
+industry fit    = <em>the venue type's fit value</em>
+captive         = <em>the venue type's dwell value</em>
+route density   = log(neighbours within 1.5 mi) rescaled to 0–100</div>
+
+  <h3>Placement score</h3>
+  <div class="formula">score = Σ(sub-score × weight) ÷ Σ(weights)</div>
+  <p>Weights are normalised, so the score always lands on 0–100 whatever you set the sliders to.</p>
+
+  <h3>Economics</h3>
+  <div class="formula">capture rate = 5% + (industry fit ÷ 100) × 15%   <em>→ 5%–20% of the audience vends daily</em>
+days         = 30 if the site runs 7 days, else 21
+revenue      = audience × capture rate × $2.75 × days
+gross        = revenue × 52%
+servicing    = 2 × ( miles × 2 × $0.70  +  (minutes × 2 + 15) ÷ 60 × $28 )
+net          = gross − servicing</div>
+  <p>Servicing assumes two restock trips a month, a round trip each, mileage at $0.70 and time at $28 an hour, plus fifteen minutes at the machine.</p>
+
+  <div class="note">
+    <div class="note-h">What these numbers are for</div>
+    <p>They rank sites against each other honestly and consistently. They are not a quote and not a business plan. What you actually earn depends on the commission you agree, what is already in the building, and how the product mix lands — none of which is in your spreadsheet.</p>
+  </div>
+</section>
+
+<!-- 20 ------------------------------------------------------------------ -->
+<section id="recipes">
+  <div class="sec-head"><span class="sec-n">23</span><h2>How do I…</h2></div>
+
+  <div class="recipe">
+    <p class="recipe-q">…find the closest sites that are actually worth it?</p>
+    <ol><li>Leave only band <span class="sw" style="background:var(--b0)">1</span> on.</li><li>Turn on <b>Only venues where staff are on site</b>.</li><li>Drag <b>Min placement score</b> up until roughly fifteen rows remain.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…find sites where one trip could serve several machines?</p>
+    <ol><li>Set sort level 1 to <b>Route density (1.5 mi)</b>.</li><li>Add level 2: <b>Placement score ↓</b>.</li><li>Open the top result and read <i>Other listed sites ≤ 1.5 mi</i>. Then search that street name to see who the neighbours are.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…work only the venue types that convert best?</p>
+    <ol><li>Click <b>None</b> in the Industry panel.</li><li>Switch on Healthcare, Manufacturing, Logistics, Aerospace and Call Center — the five types rated 90 or above.</li><li>Sort by <b>Daily on-site audience ↓</b>.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…compare two specific companies?</p>
+    <ol><li>Search one, open its detail panel, click <b>Copy details</b>.</li><li>Paste it somewhere.</li><li>Repeat for the other. The two blocks line up field for field.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…see what the ranking looks like if I stop caring about the drive?</p>
+    <ol><li>Drag <b>Proximity</b> to 0.</li><li>Go to <b>Top picks</b>. Compare against what was there before.</li><li><b>Reset</b> puts the weights back.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…produce a call list for tomorrow morning?</p>
+    <ol><li>Filter to what you want to work, and star each site worth a call.</li><li>Open the <b>Shortlist</b> tab and sort by <b>Drive time ↑</b> so it runs in route order.</li><li>Check the <i>Servicing all of them</i> tile — if that is more hours than you have, star fewer.</li><li><b>Export call sheet</b>. Contacts and phone numbers are in it.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…work from a different starting address?</p>
+    <ol><li>Click the <b>★ home base</b> chip in the top bar.</li><li>Type the address with city and state, press <b>Set home base</b>, wait about ten seconds.</li><li>Everything re-measures. <b>Reset to original</b> undoes it instantly.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…avoid records with something wrong with them?</p>
+    <ol><li>In <b>Record confidence</b>, switch off <i>One thing to check</i> and <i>Needs a check</i>.</li><li>Or leave them on and sort by <b>Record warnings ↓</b> to deal with the questionable ones first and clear them.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…check whether a pin is where I think it is?</p>
+    <ol><li>Open the site's detail panel.</li><li>Read <i>Geocode quality</i>. Anything other than <b>Exact rooftop match</b> deserves a look.</li><li>Click <b>Directions ↗</b> and confirm against Google's own result.</li></ol>
+  </div>
+
+  <div class="recipe">
+    <p class="recipe-q">…find the biggest employers regardless of everything else?</p>
+    <ol><li>Sort level 1: <b>Employees (total) ↓</b>.</li><li>Compare the Employees column against Audience. Where they diverge sharply, the venue type is telling you the headcount is not in that building.</li></ol>
+  </div>
+</section>
+
+<!-- 21 ------------------------------------------------------------------ -->
+<section id="trouble">
+  <div class="sec-head"><span class="sec-n">24</span><h2>When it looks wrong</h2></div>
+  <div class="ctl">
+    <div class="ctl-row">
+      <div class="ctl-name">The map is grey and empty</div>
+      <div class="ctl-body">Map tiles need an internet connection. Everything else works without one. If you are online and it is still grey, switch to another tab and back — the map re-measures itself when the tab is shown.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">"No sites match these filters"</div>
+      <div class="ctl-body">Something in the sidebar is too tight. The usual suspects are <b>Min placement score</b> and the <b>Industry</b> panel with most types switched off. Click <b>All</b> on the bands and the industries to get back to a clean slate.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">A company is in the wrong industry</div>
+      <div class="ctl-body">Open its detail panel and read <i>Classified via</i>. Classification uses the company name first, then the NAICS description, then the numeric code — so a firm whose sheet description is <code>Office Administrative Services</code> can land somewhere generic. The classification rules live in <code>scripts/pipeline.py</code> and are easy to add to.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">A pin is in the wrong place</div>
+      <div class="ctl-body">Check <i>Geocode quality</i>. Two sites in the current dataset fell back to a ZIP-code centroid and sit at the middle of their postal area rather than at the building.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">An import produced fewer rows than my file has</div>
+      <div class="ctl-body">Rows with no company name or no address are skipped before geocoding, and rows that could not be located anywhere are dropped afterwards. The log in the import dialog reports both counts.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Setting a home base says the address was not found</div>
+      <div class="ctl-body">Include the city and state — <code>1234 Example St, Colorado Springs, CO</code>. The US Census geocoder wants a real street address; a business name alone will not resolve. A ZIP helps but is not required.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">Distances look off after changing the home base</div>
+      <div class="ctl-body">Read the log in the dialog. If it says routing could not be reached, every distance is a straight-line estimate with a road factor applied. Set the address again once you are online.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">A company is flagged but looks fine to me</div>
+      <div class="ctl-body">Most flags are context, not accusations — the commonest by far is an out-of-state phone number, which just means the contact is a corporate line. Open the panel and read the actual flag before discounting a site.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">My shortlist disappeared</div>
+      <div class="ctl-body">It is stored per browser. Opening the file in a different browser, or in a private window, starts an empty one.</div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl-name">I want to start completely fresh</div>
+      <div class="ctl-body">Reload the page. Filters reset on their own; click <b>Reset</b> under Score weights and <b>All</b> on both filter panels to clear the rest.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span><b>Zenith &amp; Sky</b> Vending Location Intelligence</span>
+  <span>365 sites · Colorado Springs</span>
+  <span>Data: US Census geocoder · OpenStreetMap · OSRM</span>
+</footer>
+
+</main>
+</div>
+</div>
+
+</body>
+</html>
